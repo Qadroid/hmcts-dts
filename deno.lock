@@ -6,6 +6,7 @@
     "npm:@sveltejs/vite-plugin-svelte@5": "5.0.3_svelte@5.28.2__acorn@8.14.1_vite@6.3.3__picomatch@4.0.2",
     "npm:@tailwindcss/forms@~0.5.9": "0.5.10_tailwindcss@4.1.4",
     "npm:@tailwindcss/vite@4": "4.1.4_vite@6.3.3__picomatch@4.0.2",
+    "npm:pocketbase@~0.26.2": "0.26.2",
     "npm:svelte-check@4": "4.1.6_svelte@5.28.2__acorn@8.14.1_typescript@5.8.3",
     "npm:svelte@5": "5.28.2_acorn@8.14.1",
     "npm:tailwindcss@4": "4.1.4",
@@ -546,6 +547,9 @@
     "picomatch@4.0.2": {
       "integrity": "sha512-M7BAV6Rlcy5u+m6oPhAPFgJTzAioX/6B0DxyvDlo9l8+T3nLKbrczg2WLUyzd45L8RqfUMyGPzekbMvX2Ldkwg=="
     },
+    "pocketbase@0.26.2": {
+      "integrity": "sha512-WA8EOBc3QnSJh8rJ3iYoi9DmmPOMFIgVfAmIGux7wwruUEIzXgvrO4u0W2htfQjGIcyezJkdZOy5Xmh7SxAftw=="
+    },
     "postcss@8.5.3": {
       "integrity": "sha512-dle9A3yYxlBSrt8Fu+IpjGT8SY8hN0mlaA6GY8t0P5PjIOZemULz/E2Bnm/2dcUOena75OTNkHI76uZBNUUq3A==",
       "dependencies": [
@@ -687,6 +691,7 @@
         "npm:@sveltejs/vite-plugin-svelte@5",
         "npm:@tailwindcss/forms@~0.5.9",
         "npm:@tailwindcss/vite@4",
+        "npm:pocketbase@~0.26.2",
         "npm:svelte-check@4",
         "npm:svelte@5",
         "npm:tailwindcss@4",
