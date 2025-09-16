@@ -1,0 +1,6 @@
+{
+	"unstable": ["fmt-component"],
+	"fmt": {
+		"useTabs": true
+	}
+}
