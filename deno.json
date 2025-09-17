@@ -3,5 +3,7 @@
 	"fmt": {
 		"useTabs": true
 	},
-	"importMap": "import_map.json"
+	"imports": {
+   		"$lib/": "./src/lib/"
+  	}
 }
