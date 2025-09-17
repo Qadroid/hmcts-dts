@@ -2,5 +2,6 @@
 	"unstable": ["fmt-component"],
 	"fmt": {
 		"useTabs": true
-	}
+	},
+	"importMap": "import_map.json"
 }
