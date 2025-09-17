@@ -1,5 +1,5 @@
 import { RequestHandler } from "@sveltejs/kit";
-import pb from "../../../lib/pocketbase.ts";
+import pb from "$lib/pocketbase.ts";
 
 // General use for below
 const handleResponse = (data: { 
