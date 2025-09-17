@@ -118,7 +118,7 @@ export const DELETE: RequestHandler = async ({ url }) => {
 		await pb.collection("tasks").delete(taskId);
 		return handleResponse({ id: taskId }, 200);
 	} catch (error) {
-		console.error("Error deleting task:", error);
-		return handleResponse({ error: "Failed to delete task" }, 500);
+		console.error("Task not found:", error);
+		return handleResponse({ error: "Task not found" }, 404);
 	}
 };
