@@ -2,20 +2,18 @@ import { RequestHandler } from "@sveltejs/kit";
 import pb from "$lib/pocketbase.ts";
 
 // General use for below
-const handleResponse = (data: { 
-    error?: string
-    result?: any;
-    id?: string;
-}, 
-    status: number
-) => {
+const handleResponse = (data: {
+	error?: string;
+	result?: any;
+	id?: string;
+}, status: number) => {
 	return new Response(
-        JSON.stringify(data), 
-        { 
-            status,
-            headers: { "Content-Type": "application/json" }
-        }
-    );
+		JSON.stringify(data),
+		{
+			status,
+			headers: { "Content-Type": "application/json" },
+		},
+	);
 };
 
 // CRUD operations for tasks
@@ -61,16 +59,16 @@ export const POST: RequestHandler = async ({ request }) => {
 	const newTask: { [key: string]: string } = {};
 
 	for (const key of formData.keys()) {
-        try {
-            newTask[key] = formData.get(key) as string;
-        } catch (error) {
-            console.error("Error processing form data:", error);
-        }
+		try {
+			newTask[key] = formData.get(key) as string;
+		} catch (error) {
+			console.error("Error processing form data:", error);
+		}
 	}
 
 	try {
 		const response = await pb.collection("tasks").create(newTask);
-        return handleResponse({ id: response.id }, 201);
+		return handleResponse({ id: response.id }, 201);
 	} catch (error) {
 		console.error("Error creating task:", error);
 		return handleResponse({ error: "Failed to create task" }, 500);
@@ -78,31 +76,31 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 export const PATCH: RequestHandler = async ({ request, url }) => {
-    const taskId = url.searchParams.get("id");
-    const formData = await request.formData();
-    
-    // Ensure request is defined
-    if (!request) {
-        return handleResponse({ error: "No request data" }, 400);
-    } else if (!taskId) {
-        return handleResponse({ error: "No task ID provided" }, 400);
-    } else if (!formData) {
-        return handleResponse({ error: "No form data provided" }, 400);
-    }
+	const taskId = url.searchParams.get("id");
+	const formData = await request.formData();
+
+	// Ensure request is defined
+	if (!request) {
+		return handleResponse({ error: "No request data" }, 400);
+	} else if (!taskId) {
+		return handleResponse({ error: "No task ID provided" }, 400);
+	} else if (!formData) {
+		return handleResponse({ error: "No form data provided" }, 400);
+	}
 
 	const updatedTask: { [key: string]: string } = {};
 
 	for (const key of formData.keys()) {
-        try {
-            updatedTask[key] = formData.get(key) as string;
-        } catch (error) {
-            console.error("Error processing form data:", error);
-        }
+		try {
+			updatedTask[key] = formData.get(key) as string;
+		} catch (error) {
+			console.error("Error processing form data:", error);
+		}
 	}
 
 	try {
 		const response = await pb.collection("tasks").update(taskId, updatedTask);
-        return handleResponse({ id: response.id }, 200);
+		return handleResponse({ id: response.id }, 200);
 	} catch (error) {
 		console.error("Error updating task:", error);
 		return handleResponse({ error: "Failed to update task" }, 500);
@@ -118,7 +116,7 @@ export const DELETE: RequestHandler = async ({ url }) => {
 
 	try {
 		await pb.collection("tasks").delete(taskId);
-        return handleResponse({ id: taskId }, 200);
+		return handleResponse({ id: taskId }, 200);
 	} catch (error) {
 		console.error("Error deleting task:", error);
 		return handleResponse({ error: "Failed to delete task" }, 500);

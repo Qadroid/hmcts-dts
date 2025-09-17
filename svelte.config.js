@@ -1,7 +1,6 @@
 import adapter from "@sveltejs/adapter-auto";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 
-
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
@@ -11,9 +10,9 @@ const config = {
 		},
 		alias: {
 			"$components": "src/lib/components",
-			"$lib": "src/lib/"
-		}
-	}
+			"$lib": "src/lib/",
+		},
+	},
 };
 
 export default config;
