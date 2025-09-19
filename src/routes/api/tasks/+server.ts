@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			const task = await pb.collection("tasks").getOne(taskId);
 			return handleResponse({ result: task }, 200);
 		} catch (error) {
-			console.error("Error fetching task:", error);
+			console.error("Task not found:", error);
 			return handleResponse({ error: "Task not found" }, 404);
 		}
 	}
@@ -54,6 +54,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		return handleResponse({ error: "Title is required" }, 400);
 	} else if (!formData.get("due")) {
 		return handleResponse({ error: "Due date/time is required" }, 400);
+	} else if (!formData.get("due") || isNaN(Date.parse(formData.get("due") as string))) {
+		return handleResponse({ error: "Due date/time is invalid" }, 400);
 	}
 
 	interface CreateTaskInterface {
@@ -74,8 +76,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		newTask.status = formData.get("status") === "true" ? true : false;
 	}
 
-	console.log("New Task Data:", newTask);
-
 	try {
 		const response = await pb.collection("tasks").create(newTask);
 		return handleResponse({ id: response.id }, 201);
@@ -86,8 +86,22 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 export const PATCH: RequestHandler = async ({ request, url }) => {
-	const taskId = url.searchParams.get("id");
-	const formData = await request.formData();
+	let taskId: string | null = null;
+	let formData: FormData | null = null;
+
+	try {
+		taskId = url.searchParams.get("id");
+	} catch (error) {
+		console.error("Error retrieving task ID:", error);
+		return handleResponse({ error: "No task ID provided" }, 400);
+	}
+
+	try {
+		formData = await request.formData();
+	} catch (error) {
+		console.error("Error parsing form data:", error);
+		return handleResponse({ error: "No form data provided" }, 400);
+	}
 
 	// Ensure request is defined
 	if (!request) {
@@ -115,6 +129,9 @@ export const PATCH: RequestHandler = async ({ request, url }) => {
 	}
 	if (formData.get("due")) {
 		updatedTask.due = formData.get("due") as string;
+		if (isNaN(Date.parse(updatedTask.due))) {
+			return handleResponse({ error: "Due date/time is invalid" }, 400);
+		}
 	}
 	if (formData.get("status")) {
 		updatedTask.status = formData.get("status") === "true" ? true : false;
@@ -124,8 +141,8 @@ export const PATCH: RequestHandler = async ({ request, url }) => {
 		const response = await pb.collection("tasks").update(taskId, updatedTask);
 		return handleResponse({ id: response.id }, 200);
 	} catch (error) {
-		console.error("Error updating task:", error);
-		return handleResponse({ error: "Failed to update task" }, 500);
+		console.error("Task doesn't exist:", error);
+		return handleResponse({ error: "Task not found" }, 404);
 	}
 };
 
