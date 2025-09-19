@@ -56,19 +56,23 @@ export const POST: RequestHandler = async ({ request }) => {
 		return handleResponse({ error: "Due date/time is required" }, 400);
 	}
 
-	interface TaskInterface {
+	interface CreateTaskInterface {
 		title: string;
 		description?: string;
 		due: string;
 		status?: boolean;
 	}
 
-	const newTask: TaskInterface = {
+	const newTask: CreateTaskInterface = {
 		title: formData.get("title") as string,
-		description: formData.get("description") as string,
 		due: formData.get("due") as string,
-		status: formData.get("status") === "true" ? true : false
 	};
+	if (formData.get("description")) {
+		newTask.description = formData.get("description") as string;
+	}
+	if (formData.get("status")) {
+		newTask.status = formData.get("status") === "true" ? true : false;
+	}
 
 	console.log("New Task Data:", newTask);
 
@@ -94,14 +98,26 @@ export const PATCH: RequestHandler = async ({ request, url }) => {
 		return handleResponse({ error: "No form data provided" }, 400);
 	}
 
-	const updatedTask: { [key: string]: string } = {};
+	interface UpdateTaskInterface {
+		title?: string;
+		description?: string;
+		due?: string;
+		status?: boolean;
+	}
 
-	for (const key of formData.keys()) {
-		try {
-			updatedTask[key] = formData.get(key) as string;
-		} catch (error) {
-			console.error("Error processing form data:", error);
-		}
+	const updatedTask: UpdateTaskInterface = {};
+
+	if (formData.get("title")) {
+		updatedTask.title = formData.get("title") as string;
+	}
+	if (formData.get("description")) {
+		updatedTask.description = formData.get("description") as string;
+	}
+	if (formData.get("due")) {
+		updatedTask.due = formData.get("due") as string;
+	}
+	if (formData.get("status")) {
+		updatedTask.status = formData.get("status") === "true" ? true : false;
 	}
 
 	try {
