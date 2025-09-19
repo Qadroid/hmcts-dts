@@ -1,4 +1,4 @@
-import { RequestHandler } from "@sveltejs/kit";
+import type { RequestHandler } from "@sveltejs/kit";
 import pb from "$lib/pocketbase.ts";
 
 // General use for below
@@ -56,15 +56,21 @@ export const POST: RequestHandler = async ({ request }) => {
 		return handleResponse({ error: "Due date/time is required" }, 400);
 	}
 
-	const newTask: { [key: string]: string } = {};
-
-	for (const key of formData.keys()) {
-		try {
-			newTask[key] = formData.get(key) as string;
-		} catch (error) {
-			console.error("Error processing form data:", error);
-		}
+	interface TaskInterface {
+		title: string;
+		description?: string;
+		due: string;
+		status?: boolean;
 	}
+
+	const newTask: TaskInterface = {
+		title: formData.get("title") as string,
+		description: formData.get("description") as string,
+		due: formData.get("due") as string,
+		status: formData.get("status") === "true" ? true : false
+	};
+
+	console.log("New Task Data:", newTask);
 
 	try {
 		const response = await pb.collection("tasks").create(newTask);
