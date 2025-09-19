@@ -4,6 +4,10 @@
 		"useTabs": true
 	},
 	"imports": {
-		"$lib/": "./src/lib/"
+		"$lib/": "./src/lib/",
+		"zod": "npm:zod@^3.23.8",
+		"sveltekit-superforms": "npm:sveltekit-superforms@^2.27.1",
+		"sveltekit-superforms/adapters": "npm:sveltekit-superforms@^2.27.1/adapters",
+		"@sveltejs/kit": "npm:@sveltejs/kit@^2.16.0"
 	}
 }
