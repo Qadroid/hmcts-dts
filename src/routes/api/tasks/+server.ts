@@ -54,7 +54,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		return handleResponse({ error: "Title is required" }, 400);
 	} else if (!formData.get("due")) {
 		return handleResponse({ error: "Due date/time is required" }, 400);
-	} else if (!formData.get("due") || isNaN(Date.parse(formData.get("due") as string))) {
+	} else if (
+		!formData.get("due") || isNaN(Date.parse(formData.get("due") as string))
+	) {
 		return handleResponse({ error: "Due date/time is invalid" }, 400);
 	}
 
