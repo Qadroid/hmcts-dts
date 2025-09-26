@@ -26,9 +26,9 @@ export function createTask(task: FormData) {
 	}
 }
 
-export function getTask(id: string) {
+export function getTask(task: FormData) {
 	try {
-		const parsed = existingTaskSchema.parse({ id });
+		const parsed = existingTaskSchema.parse({ id: task.get("id") });
 		if (!parsed) throw new Error("Invalid ID");
 		return pocketbase.collection("tasks").getOne(parsed.id);
 	} catch (error) {
@@ -37,20 +37,20 @@ export function getTask(id: string) {
 	}
 }
 
-export function updateTask(id: string, task: FormData) {
+export function updateTask(task: FormData) {
 	try {
 		const parsed = existingTaskSchema.parse(task);
 		if (!parsed) throw new Error("Invalid task data");
-		return pocketbase.collection("tasks").update(id, parsed);
+		return pocketbase.collection("tasks").update(parsed.id, parsed);
 	} catch (error) {
 		console.error("Error updating task:", error);
 		throw new Error("Failed to update task");
 	}
 }
 
-export function deleteTask(id: string) {
+export function deleteTask(task: FormData) {
 	try {
-		const parsed = existingTaskSchema.parse({ id });
+		const parsed = existingTaskSchema.parse(Object.fromEntries(task));
 		if (!parsed) throw new Error("Invalid ID");
 		return pocketbase.collection("tasks").delete(parsed.id);
 	} catch (error) {

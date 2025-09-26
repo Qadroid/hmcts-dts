@@ -1,8 +1,5 @@
 <script lang="ts">
-	let { data } = $props();
-
-	let task = data.task;
-	console.log(task);
+	let { task } = $props();
 </script>
 {#if task}
 	<h1 class="text-2xl font-bold mb-4">{task.title}</h1>

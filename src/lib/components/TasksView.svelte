@@ -7,8 +7,8 @@
 	let { tasks } = $props();
 </script>
 
-<div class="flex flex-col p-3">
-	<Card.Root>
+<div class="flex flex-col p-3 w-full items-center p-16">
+	<Card.Root class=" min-w-2xl max-w-2xl">
 		<Card.Header class="">
 			<Card.Title>All Tasks</Card.Title>
 			<Card.Description>List of tasks with details and status</Card.Description>

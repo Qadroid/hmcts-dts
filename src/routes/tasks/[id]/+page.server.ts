@@ -4,15 +4,17 @@ import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-	const data = await pb.getTask(event.params.id);
-	return { data };
+	if (!event.params.id) { redirect(303, "/tasks"); }
+	const data = new FormData();
+	data.append("id", event.params.id);
+	const task = await pb.getTask(data);
+	return { task };
 }
 
 export const actions: Actions = {
 	update: async (event) => {
 		try {
-			if (!event.params.id) { return { success: false }; }
-			const response = await pb.updateTask(event.params.id, await event.request.formData());
+			const response = await pb.updateTask(await event.request.formData());
 			if (!response.ok) { return { success: false }; }
 			redirect(303, "/tasks");
 		} catch (error) {
@@ -23,8 +25,7 @@ export const actions: Actions = {
 
 	delete: async (event) => {
 		try {
-			if (!event.params.id) { return { success: false }; }
-			const response = await pb.deleteTask(event.params.id);
+			const response = await pb.deleteTask(await event.request.formData());
 			if (!response) { return { success: false }; }
 			redirect(303, "/tasks");
 		} catch (error) {

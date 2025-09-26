@@ -15,7 +15,6 @@
 	let open = $state(false);
 	let { task } = $props();
     let value = $state<CalendarDate | undefined>();
-    
 </script>
 
 <div>
@@ -71,8 +70,11 @@
 			</div>
 		</div>
 		<Input value={task.status} disabled={!editMode} class="mb-4" />
+        <Input type="hidden" name="id" value={task.id} />
 		{#if editMode}
 			<Button type="submit" variant="default">Save</Button>
-		{/if}
+		{:else}
+            <Button type="button" variant="outline" onclick={() => (editMode = true)}>Edit</Button>
+        {/if}
 	</form>
 </div>
