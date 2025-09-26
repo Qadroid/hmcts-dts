@@ -3,7 +3,7 @@
 	import * as Calendar from "./index.js";
 	import { cn, type WithoutChildrenOrChild } from "$lib/utils.js";
 	import type { ButtonVariant } from "../button/button.svelte";
-	import { isEqualMonth, type DateValue } from "@internationalized/date";
+	import { type DateValue, isEqualMonth } from "@internationalized/date";
 	import type { Snippet } from "svelte";
 
 	let {
@@ -24,7 +24,11 @@
 		...restProps
 	}: WithoutChildrenOrChild<CalendarPrimitive.RootProps> & {
 		buttonVariant?: ButtonVariant;
-		captionLayout?: "dropdown" | "dropdown-months" | "dropdown-years" | "label";
+		captionLayout?:
+			| "dropdown"
+			| "dropdown-months"
+			| "dropdown-years"
+			| "label";
 		months?: CalendarPrimitive.MonthSelectProps["months"];
 		years?: CalendarPrimitive.YearSelectProps["years"];
 		monthFormat?: CalendarPrimitive.MonthSelectProps["monthFormat"];
@@ -51,7 +55,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 	{disableDaysOutsideMonth}
 	class={cn(
 		"bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
-		className
+		className,
 	)}
 	{locale}
 	{monthFormat}
@@ -95,10 +99,13 @@ get along, so we shut typescript up by casting `value` to `never`.
 									{#each weekDates as date (date)}
 										<Calendar.Cell {date} month={month.value}>
 											{#if day}
-												{@render day({
-													day: date,
-													outsideMonth: !isEqualMonth(date, month.value),
-												})}
+												{@render 								day({
+									day: date,
+									outsideMonth: !isEqualMonth(
+										date,
+										month.value,
+									),
+								})}
 											{:else}
 												<Calendar.Day />
 											{/if}

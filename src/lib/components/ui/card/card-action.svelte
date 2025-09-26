@@ -7,16 +7,17 @@
 		class: className,
 		children,
 		...restProps
-	}: WithElementRef<HTMLAttributes<HTMLElement>> = $props();
+	}: WithElementRef<HTMLAttributes<HTMLDivElement>> = $props();
 </script>
 
-<nav
-	{...restProps}
+<div
 	bind:this={ref}
+	data-slot="card-action"
 	class={cn(
-		"absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
+		"col-start-2 row-span-2 row-start-1 self-start justify-self-end",
 		className,
 	)}
+	{...restProps}
 >
 	{@render children?.()}
-</nav>
+</div>
