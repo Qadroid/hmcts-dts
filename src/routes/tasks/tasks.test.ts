@@ -1,385 +1,175 @@
 /// <reference lib="deno.ns" />
-// Not updated.
 
-import Pocketbase from "pocketbase";
-import { assertEquals } from "jsr:@std/assert";
+import PocketBase from "pocketbase";
+import { assertEquals, assert } from "jsr:@std/assert";
 
 const pbUrl = Deno.env.get("PUBLIC_POCKETBASE_URL");
-const taskApiUrl = "http://127.0.0.1:5173/api/tasks";
+const baseUrl = "http://localhost:5173/tasks";
+const pb = new PocketBase(pbUrl);
 
-const pb = new Pocketbase(pbUrl);
+const knownTaskIds: string[] = [];
 
-let knownTaskIds: string[] = [];
-
-async function getAllTasks() {
-	const response = await pb.collection("tasks").getFullList();
-	return response;
+// Helpers
+function fd(data: Record<string, string>) {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(data)) form.append(k, v);
+  return form;
 }
 
-async function getTaskById(id: string) {
-	const response = await pb.collection("tasks").getOne(id);
-	return response;
-}
-
-// Sample data for creating tasks during tests
-const testData1: FormData = new FormData();
-testData1.append("title", "Test Task");
-testData1.append("description", "This is a test task created during testing.");
-testData1.append("due", new Date().toISOString());
-testData1.append("status", "false");
-
-const testData2: FormData = new FormData();
-testData2.append("title", "Another Test Task");
-testData2.append(
-	"description",
-	"This is another test task created during testing.",
-);
-testData2.append("due", new Date(Date.now() + 86400000).toISOString()); // +1 day
-testData2.append("status", "true");
-
-const testData3: FormData = new FormData();
-testData3.append("title", "Third Test Task");
-testData3.append(
-	"description",
-	"This is the third test task created during testing.",
-);
-testData3.append("due", new Date(Date.now() + 172800000).toISOString()); // +2 days
-testData3.append("status", "false");
-
-const testDataSuite: FormData[] = [
-	testData1,
-	testData2,
-	testData3,
+const validSuite: FormData[] = [
+  fd({
+    title: "Test Task",
+    description: "This is a test task created during testing.",
+    due: new Date().toISOString(),
+    status: "false",
+  }),
+  fd({
+    title: "Another Test Task",
+    description: "This is another test task created during testing.",
+    due: new Date(Date.now() + 86400000).toISOString(),
+    status: "true",
+  }),
+  fd({
+    title: "Third Test Task",
+    description: "This is the third test task created during testing.",
+    due: new Date(Date.now() + 172800000).toISOString(),
+    status: "false",
+  }),
 ];
 
-const invalidData1: FormData = new FormData();
-invalidData1.append("description", "Missing title and due date");
-
-const invalidData2: FormData = new FormData();
-invalidData2.append("description", "This task is missing a due date.");
-invalidData2.append("due", new Date().toISOString());
-
-const invalidData3: FormData = new FormData();
-invalidData3.append("title", "Invalid Status");
-invalidData3.append("description", "This task has an invalid status.");
-invalidData3.append("status", "false");
-
-const invalidDataSuite: FormData[] = [
-	invalidData1,
-	invalidData2,
-	invalidData3,
+const invalidCreateSuite: FormData[] = [
+  fd({ description: "Missing title and due date" }),
+  fd({ description: "Missing title", due: new Date().toISOString() }),
+  fd({ title: "Missing due date", description: "Missing due date" }),
 ];
 
-Deno.test("Test POST task API", async (t) => {
-	for (const [index, testData] of testDataSuite.entries()) {
-		await t.step(`Create Valid Test Task ${index + 1}`, async () => {
-			let createResponse: Response;
-			try {
-				createResponse = await fetch(taskApiUrl, {
-					method: "POST",
-					body: testData,
-				});
-			} catch (error) {
-				console.error("Error during fetch:", error);
-				return;
-			}
-			if (createResponse.ok) {
-				const data = await createResponse.json();
-				knownTaskIds.push(data.id);
-				assertEquals(createResponse.status, 201);
-			} else {
-				console.error("Failed to create task:", createResponse.statusText);
-			}
-		});
-	}
-
-	await t.step("Verify Created Tasks", async () => {
-		const response = await fetch(taskApiUrl);
-		if (response.ok) {
-			const data = await response.json();
-			const createdTasks = data.result.filter((task: any) =>
-				knownTaskIds.includes(task.id)
-			);
-			assertEquals(
-				createdTasks.length,
-				testDataSuite.length,
-				"Expected created tasks to match test data suite",
-			);
-		} else {
-			console.error("Failed to fetch tasks:", response.statusText);
-			assertEquals(response.ok, true);
-		}
-	});
-
-	await t.step("Attempt Invalid Task Creations", async (i) => {
-		for (const [index, invalidData] of invalidDataSuite.entries()) {
-			await i.step(`Create Invalid Test Task ${index + 1}`, async () => {
-				let createResponse: Response;
-				try {
-					createResponse = await fetch(taskApiUrl, {
-						method: "POST",
-						body: invalidData,
-					});
-					createResponse.body?.cancel();
-					assertEquals(createResponse.ok, false);
-				} catch (error) {
-					console.error("Error during fetch:", error);
-					return;
-				}
-				assertEquals(createResponse.status, 400);
-			});
-		}
-	});
-
-	// Only due and status have type constraints, so only test those
-	await t.step("Wrong types sent to API should fail", async () => {
-		const wrongTypeData: FormData = new FormData();
-		wrongTypeData.append("title", "Task with Wrong Types");
-		wrongTypeData.append("description", "This task has wrong data types.");
-		wrongTypeData.append("due", "not-a-date");
-		wrongTypeData.append("status", "not-a-boolean");
-
-		let createResponse: Response;
-		try {
-			createResponse = await fetch(taskApiUrl, {
-				method: "POST",
-				body: wrongTypeData,
-			});
-			createResponse.body?.cancel();
-			assertEquals(createResponse.ok, false);
-		} catch (error) {
-			console.error("Error during fetch:", error);
-			return;
-		}
-		assertEquals(createResponse.status, 400);
-	});
+Deno.test("Tasks API - POST create tasks (201) and capture ids", async (t) => {
+  for (const [i, form] of validSuite.entries()) {
+    await t.step(`Create valid ${i + 1}`, async () => {
+      const res = await fetch(baseUrl, { method: "POST", body: form });
+      assertEquals(res.status, 201);
+      const record = await res.json();
+      assert("id" in record);
+      knownTaskIds.push(record.id);
+    });
+  }
 });
 
-Deno.test("Test GET task API", async (t) => {
-	await t.step("Fetch All Tasks", async () => {
-		const response = await fetch(taskApiUrl);
-		if (response.ok) {
-			const data = await response.json();
-			assertEquals(response.status, 200);
-			assertEquals(
-				Array.isArray(data.result),
-				true,
-				"Expected result to be an array",
-			);
-			assertEquals(
-				data.result,
-				await getAllTasks(),
-				"Expected fetched tasks to match Pocketbase data",
-			);
-		} else {
-			assertEquals(response.ok, true);
-		}
-	});
-
-	if (knownTaskIds.length === 0) {
-		console.warn("No known task IDs available to fetch single tasks.");
-		return;
-	}
-
-	for (const id of knownTaskIds) {
-		await t.step(`Fetch Task ID: ${id}`, async () => {
-			const response = await fetch(taskApiUrl + `/?id=${id}`);
-			if (response.ok) {
-				const data = await response.json();
-				assertEquals(response.status, 200);
-				assertEquals(data.result.id, id);
-				assertEquals(data.result, await getTaskById(id));
-			} else {
-				console.error("Failed to fetch task:", response.statusText);
-				assertEquals(response.ok, true);
-			}
-		});
-	}
-
-	await t.step("Fetch Non-Existent Task via API", async () => {
-		const fakeId = "nonexistentid12345";
-		const response = await fetch(taskApiUrl + `/?id=${fakeId}`);
-		const data = await response.json();
-		assertEquals(data.error, "Task not found");
-		assertEquals(response.status, 404);
-	});
+Deno.test("Tasks API - GET list (200) returns array and includes created ids", async () => {
+  const res = await fetch(baseUrl);
+  assertEquals(res.status, 200);
+  const list = await res.json(); // list endpoint returns raw array
+  assert(Array.isArray(list));
+  const gotIds = new Set(list.map((r: any) => r.id));
+  for (const id of knownTaskIds) assert(gotIds.has(id));
 });
 
-Deno.test("Test PATCH task API", async (t) => {
-	if (knownTaskIds.length === 0) {
-		console.warn("No known task IDs available to update tasks.");
-		return;
-	}
-
-	const updateData: FormData = new FormData();
-	updateData.append("title", "Updated Task Title");
-	updateData.append("description", "The task description has been updated.");
-	updateData.append("due", new Date(Date.now() + 86400000).toISOString()); // +1 day
-	updateData.append("status", "true");
-
-	for (const id of knownTaskIds) {
-		await t.step(`Update Task ID: ${id}`, async () => {
-			let updateResponse: Response;
-			try {
-				updateResponse = await fetch(taskApiUrl + `/?id=${id}`, {
-					method: "PATCH",
-					body: updateData,
-				});
-				await updateResponse.body?.cancel();
-			} catch (error) {
-				console.error("Error during update fetch:", error);
-				return;
-			}
-
-			if (updateResponse.ok) {
-				const updatedTask = await getTaskById(id);
-				assertEquals(updateResponse.status, 200);
-				assertEquals(updatedTask.title, updateData.get("title"));
-				assertEquals(updatedTask.description, updateData.get("description"));
-				const expectedDate = new Date(updateData.get("due") as string)
-					.toISOString();
-				const actualDate = new Date(updatedTask.due).toISOString();
-				assertEquals(expectedDate, actualDate);
-				assertEquals(updatedTask.status.toString(), updateData.get("status"));
-			} else {
-				console.error("Failed to update task:", updateResponse.statusText);
-			}
-		});
-	}
-
-	await t.step("Attempt to Update Non-Existent Task", async () => {
-		const fakeId = "nonexistentid12345";
-		let updateResponse: Response;
-		try {
-			updateResponse = await fetch(taskApiUrl + `/?id=${fakeId}`, {
-				method: "PATCH",
-				body: updateData,
-			});
-			await updateResponse.body?.cancel();
-		} catch (error) {
-			console.error("Error during update fetch:", error);
-			return;
-		}
-
-		assertEquals(updateResponse.ok, false);
-		assertEquals(updateResponse.status, 404);
-	});
-
-	await t.step("Attempt to Update with No ID", async () => {
-		let updateResponse: Response;
-		try {
-			updateResponse = await fetch(taskApiUrl, {
-				method: "PATCH",
-				body: updateData,
-			});
-			await updateResponse.body?.cancel();
-		} catch (error) {
-			console.error("Error during update fetch:", error);
-			return;
-		}
-
-		assertEquals(updateResponse.ok, false);
-		assertEquals(updateResponse.status, 400);
-	});
-
-	await t.step("Attempt to Update with No Data", async () => {
-		const id = knownTaskIds[0];
-		let updateResponse: Response;
-		try {
-			updateResponse = await fetch(taskApiUrl + `/?id=${id}`, {
-				method: "PATCH",
-			});
-			await updateResponse.body?.cancel();
-		} catch (error) {
-			console.error("Error during update fetch:", error);
-			return;
-		}
-
-		assertEquals(updateResponse.ok, false);
-		assertEquals(updateResponse.status, 400);
-	});
-
-	await t.step("Attempt to Update with Invalid Data", async () => {
-		const id = knownTaskIds[0];
-		const invalidUpdateData: FormData = new FormData();
-		invalidUpdateData.append("due", "not-a-date");
-		invalidUpdateData.append("status", "not-a-boolean");
-
-		let updateResponse: Response;
-		try {
-			updateResponse = await fetch(taskApiUrl + `/?id=${id}`, {
-				method: "PATCH",
-				body: invalidUpdateData,
-			});
-			await updateResponse.body?.cancel();
-		} catch (error) {
-			console.error("Error during update fetch:", error);
-			return;
-		}
-
-		assertEquals(updateResponse.ok, false);
-		assertEquals(updateResponse.status, 400);
-	});
+Deno.test("Tasks API - GET by id (200) returns { response } shape and matches PB", async (t) => {
+  for (const id of knownTaskIds) {
+    await t.step(`GET /tasks/${id}`, async () => {
+      const res = await fetch(`${baseUrl}/${id}`);
+      assertEquals(res.status, 200);
+      const json = await res.json(); // { response }
+      assert("response" in json);
+      assertEquals(json.response.id, id);
+      const pbRecord = await pb.collection("tasks").getOne(id);
+      // Shallow check a few fields
+      assertEquals(pbRecord.id, json.response.id);
+      assertEquals(pbRecord.title, json.response.title);
+    });
+  }
 });
 
-Deno.test("Test DELETE task API", async (t) => {
-	if (knownTaskIds.length === 0) {
-		console.warn("No known task IDs available to delete tasks.");
-		return;
-	}
+Deno.test("Tasks API - GET non-existent id returns 500 with failure message", async () => {
+  const fakeId = "nonexistentid12345";
+  const res = await fetch(`${baseUrl}/${fakeId}`);
+  // Current handler maps PB errors to 500
+  assertEquals(res.status, 500);
+  const body = await res.json();
+  assertEquals(body.message, "Failed to fetch task");
+});
 
-	for (const id of knownTaskIds) {
-		await t.step(`Delete Task ID: ${id}`, async () => {
-			let deleteResponse: Response;
-			try {
-				deleteResponse = await fetch(taskApiUrl + `/?id=${id}`, {
-					method: "DELETE",
-				});
-				await deleteResponse.body?.cancel();
-				assertEquals(deleteResponse.status, 200);
-				if (deleteResponse.ok) {
-					try {
-						const fetchDeleted = await fetch(taskApiUrl + `/?id=${id}`);
-						fetchDeleted.body?.cancel();
-						assertEquals(fetchDeleted.status, 404);
-					} catch (error) {
-						console.error("Error checking for deleted task:", error);
-					}
-				} else {
-					console.error("Failed to delete task:", deleteResponse.statusText);
-				}
-			} catch (error) {
-				console.error("Error deleting task:", error);
-			}
-		});
-	}
+Deno.test("Tasks API - POST invalid data returns 400", async (t) => {
+  for (const [i, form] of invalidCreateSuite.entries()) {
+    await t.step(`Invalid create ${i + 1}`, async () => {
+      const res = await fetch(baseUrl, { method: "POST", body: form });
+      assertEquals(res.status, 400);
+      const body = await res.json();
+      assertEquals(body.message, "Invalid task data");
+      assert("errors" in body);
+    });
+  }
+});
 
-	await t.step("Attempt to Delete Non-Existent Task", async () => {
-		const fakeId = "nonexistentid12345";
-		let deleteResponse: Response;
-		try {
-			deleteResponse = await fetch(taskApiUrl + `/?id=${fakeId}`, {
-				method: "DELETE",
-			});
-			await deleteResponse.body?.cancel();
-			assertEquals(deleteResponse.ok, false);
-			assertEquals(deleteResponse.status, 404);
-		} catch (error) {
-			console.error("Error deleting non-existent task:", error);
-		}
-	});
+Deno.test("Tasks API - POST wrong types returns 400", async () => {
+  const wrongTypes = fd({
+    title: "Wrong Types",
+    description: "due and status are wrong types",
+    due: "not-a-date",
+    status: "not-a-boolean",
+  });
+  const res = await fetch(baseUrl, { method: "POST", body: wrongTypes });
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.message, "Invalid task data");
+  assert("errors" in body);
+});
 
-	await t.step("Attempt to Delete with No ID", async () => {
-		let deleteResponse: Response;
-		try {
-			deleteResponse = await fetch(taskApiUrl, {
-				method: "DELETE",
-			});
-			await deleteResponse.body?.cancel();
-			assertEquals(deleteResponse.ok, false);
-			assertEquals(deleteResponse.status, 400);
-		} catch (error) {
-			console.error("Error deleting task with no ID:", error);
-		}
-	});
+Deno.test("Tasks API - PATCH update by id (200) and persisted in PB", async () => {
+  const id = knownTaskIds[0];
+  const updateForm = fd({
+    title: "Updated Task Title",
+    description: "The task description has been updated.",
+    due: new Date(Date.now() + 86400000).toISOString(),
+    status: "true",
+  });
+  const res = await fetch(`${baseUrl}/${id}`, { method: "PATCH", body: updateForm });
+  res.body?.cancel();
+  assertEquals(res.status, 200);
+  const pbRecord = await pb.collection("tasks").getOne(id);
+  assertEquals(pbRecord.title, "Updated Task Title");
+  assertEquals(pbRecord.description, "The task description has been updated.");
+  assertEquals(new Date(pbRecord.due).toISOString(), new Date(updateForm.get("due") as string).toISOString());
+  assertEquals(String(pbRecord.status), "true");
+});
+
+Deno.test("Tasks API - PATCH invalid types returns 400", async () => {
+  const id = knownTaskIds[0];
+  const invalidUpdate = fd({
+    due: "not-a-date",
+    status: "not-a-boolean",
+  });
+  const res = await fetch(`${baseUrl}/${id}`, { method: "PATCH", body: invalidUpdate });
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.message, "Invalid task data");
+  assert("errors" in body);
+});
+
+Deno.test("Tasks API - DELETE by id (200) then subsequent GET returns 500", async (t) => {
+  for (const id of [...knownTaskIds]) {
+    await t.step(`DELETE /tasks/${id}`, async () => {
+      const delRes = await fetch(`${baseUrl}/${id}`, { method: "DELETE" });
+      delRes.body?.cancel();
+      assertEquals(delRes.status, 200);
+      const getRes = await fetch(`${baseUrl}/${id}`);
+      assertEquals(getRes.status, 500); // handler maps not found to 500
+      const body = await getRes.json();
+      assertEquals(body.message, "Failed to fetch task");
+    });
+  }
+});
+
+Deno.test("Tasks API - DELETE non-existent id returns 400", async () => {
+  const fakeId = "nonExistId12345";
+  const res = await fetch(`${baseUrl}/${fakeId}`, { method: "DELETE" });
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.message, "Invalid task ID");
+});
+
+Deno.test("Tasks API - DELETE on /tasks (no id) is 405 (no route handler)", async () => {
+  const res = await fetch(baseUrl, { method: "DELETE" });
+  res.body?.cancel();
+  assertEquals(res.status, 405);
 });

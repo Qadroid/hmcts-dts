@@ -1,8 +1,7 @@
 <script lang="ts">
-	import TasksView from "$lib/components/TasksView.svelte";
+	import TasksView from "./TasksView.svelte";
 
 	let { data } = $props();
-	let tasks = data.data;
+	let { tasks } = data;
 </script>
-
 <TasksView {tasks} />

@@ -14,14 +14,13 @@ export const taskSchema = z.object({
 		255,
 		"Description must be less than 255 characters",
 	).optional(),
-	due: z.coerce.date().min(new Date(), "Due date must be in the future"),
-	status: z.string().transform((val) => val === "true" ? true : false)
-		.optional().default(false),
+	due: z.iso.datetime({ offset: true }),
+	status: z.string().transform((val) => val === "true" ? true : false),
 });
 
 export const existingTaskSchema = taskSchema.partial().extend(taskId.shape)
 	.required({ id: true });
 
-export type TaskSchema = z.infer<typeof taskSchema>;
-export type ExistingTaskSchema = z.infer<typeof existingTaskSchema>;
-export type TaskId = z.infer<typeof taskId>;
+export type TaskSchema = typeof taskSchema;
+export type ExistingTaskSchema = typeof existingTaskSchema;
+export type TaskId = typeof taskId;
