@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  svelte:
+    build: .
+    container_name: svelte-app
+    ports:
+      - "5173:5173"
+    environment:
+      PUBLIC_POCKETBASE_URL: "http://localhost:8090"
+      POCKETBASE_URL_INTERNAL: "http://pocketbase:8090"
+    volumes:
+      - .:/app
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+
+  pocketbase:
+    build:
+      context: ./pocketbase
+      dockerfile: Dockerfile
+    container_name: pocketbase
+    ports:
+      - "8090:8090"
+    volumes:
+      - pocketbase_data:/pb_data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "http://localhost:8090/api/health", "-O", "-"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+volumes:
+  pocketbase_data:
