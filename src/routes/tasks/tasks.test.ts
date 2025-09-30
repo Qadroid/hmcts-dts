@@ -58,7 +58,7 @@ Deno.test("Tasks API - POST create tasks (201) and capture ids", async (t) => {
 Deno.test("Tasks API - GET list (200) returns array and includes created ids", async () => {
   const res = await fetch(baseUrl);
   assertEquals(res.status, 200);
-  const list = await res.json(); // list endpoint returns raw array
+  const list = await res.json();
   assert(Array.isArray(list));
   const gotIds = new Set(list.map((r: any) => r.id));
   for (const id of knownTaskIds) assert(gotIds.has(id));
@@ -69,11 +69,10 @@ Deno.test("Tasks API - GET by id (200) returns { response } shape and matches PB
     await t.step(`GET /tasks/${id}`, async () => {
       const res = await fetch(`${baseUrl}/${id}`);
       assertEquals(res.status, 200);
-      const json = await res.json(); // { response }
+      const json = await res.json();
       assert("response" in json);
       assertEquals(json.response.id, id);
       const pbRecord = await pb.collection("tasks").getOne(id);
-      // Shallow check a few fields
       assertEquals(pbRecord.id, json.response.id);
       assertEquals(pbRecord.title, json.response.title);
     });
@@ -83,7 +82,6 @@ Deno.test("Tasks API - GET by id (200) returns { response } shape and matches PB
 Deno.test("Tasks API - GET non-existent id returns 500 with failure message", async () => {
   const fakeId = "nonexistentid12345";
   const res = await fetch(`${baseUrl}/${fakeId}`);
-  // Current handler maps PB errors to 500
   assertEquals(res.status, 500);
   const body = await res.json();
   assertEquals(body.message, "Failed to fetch task");
@@ -153,7 +151,7 @@ Deno.test("Tasks API - DELETE by id (200) then subsequent GET returns 500", asyn
       delRes.body?.cancel();
       assertEquals(delRes.status, 200);
       const getRes = await fetch(`${baseUrl}/${id}`);
-      assertEquals(getRes.status, 500); // handler maps not found to 500
+      assertEquals(getRes.status, 500);
       const body = await getRes.json();
       assertEquals(body.message, "Failed to fetch task");
     });
